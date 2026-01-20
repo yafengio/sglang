@@ -1,5 +1,6 @@
 # Adapted from https://raw.githubusercontent.com/vllm-project/vllm/refs/tags/v0.6.6.post1/vllm/model_executor/layers/rotary_embedding.py
 """Rotary Positional Embeddings."""
+
 from __future__ import annotations
 
 import itertools
@@ -258,9 +259,9 @@ class RotaryEmbedding(MultiPlatformOp):
         fused_set_kv_buffer_arg: Optional[FusedSetKVBufferArg] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """A PyTorch-native implementation of forward()."""
-        assert (
-            fused_set_kv_buffer_arg is None
-        ), "fused_set_kv_buffer_arg is not supported for native implementation"
+        assert fused_set_kv_buffer_arg is None, (
+            "fused_set_kv_buffer_arg is not supported for native implementation"
+        )
 
         if offsets is not None:
             positions = positions + offsets
@@ -295,9 +296,9 @@ class RotaryEmbedding(MultiPlatformOp):
         fused_set_kv_buffer_arg: Optional[FusedSetKVBufferArg] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """A PyTorch-npu implementation of forward()."""
-        assert (
-            fused_set_kv_buffer_arg is None
-        ), "fused_set_kv_buffer_arg is not supported for npu implementation"
+        assert fused_set_kv_buffer_arg is None, (
+            "fused_set_kv_buffer_arg is not supported for npu implementation"
+        )
         if query.dtype == torch.bfloat16 and self.cos_sin_cache.dtype == torch.float:
             return self.forward_native(positions, query, key, offsets)
         if self.is_neox_style:
@@ -324,9 +325,9 @@ class RotaryEmbedding(MultiPlatformOp):
         offsets: Optional[torch.Tensor] = None,
         fused_set_kv_buffer_arg: Optional[FusedSetKVBufferArg] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert (
-            fused_set_kv_buffer_arg is None
-        ), "fused_set_kv_buffer_arg is not supported for cpu implementation"
+        assert fused_set_kv_buffer_arg is None, (
+            "fused_set_kv_buffer_arg is not supported for cpu implementation"
+        )
 
         positions = torch.add(positions, offsets) if offsets is not None else positions
         if _is_cpu_amx_available:
@@ -367,9 +368,9 @@ class RotaryEmbedding(MultiPlatformOp):
                 ),
             )
         else:
-            assert (
-                fused_set_kv_buffer_arg is None
-            ), "save kv cache is not supported for fallback_rotary_embedding."
+            assert fused_set_kv_buffer_arg is None, (
+                "save kv cache is not supported for fallback_rotary_embedding."
+            )
             self.cos_sin_cache = self.cos_sin_cache.to(query.device, dtype=query.dtype)
             self.fallback_rotary_embedding(
                 positions,
@@ -395,9 +396,9 @@ class RotaryEmbedding(MultiPlatformOp):
         offsets: Optional[torch.Tensor] = None,
         fused_set_kv_buffer_arg: Optional[FusedSetKVBufferArg] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert (
-            fused_set_kv_buffer_arg is None
-        ), "fused_set_kv_buffer_arg is not supported for xpu implementation"
+        assert fused_set_kv_buffer_arg is None, (
+            "fused_set_kv_buffer_arg is not supported for xpu implementation"
+        )
         positions = torch.add(positions, offsets) if offsets is not None else positions
         return torch.ops.sgl_kernel.rotary_embedding(
             positions,
@@ -1018,7 +1019,6 @@ class DeepseekScalingRotaryEmbedding(RotaryEmbedding):
 
 
 class Llama3RotaryEmbedding(RotaryEmbedding):
-
     def __init__(
         self,
         head_size: int,
@@ -1065,7 +1065,6 @@ class Llama3RotaryEmbedding(RotaryEmbedding):
 
 
 class Llama4VisionRotaryEmbedding(RotaryEmbedding):
-
     def __init__(
         self,
         head_size: int,
@@ -1491,9 +1490,9 @@ class MRotaryEmbedding(RotaryEmbedding):
             query: [num_tokens, num_heads * head_size]
             key: [num_tokens, num_kv_heads * head_size]
         """
-        assert (
-            fused_set_kv_buffer_arg is None
-        ), "save kv cache is not supported for MRotaryEmbedding."
+        assert fused_set_kv_buffer_arg is None, (
+            "save kv cache is not supported for MRotaryEmbedding."
+        )
         assert positions.ndim == 1 or positions.ndim == 2
 
         num_tokens = positions.shape[-1]
@@ -1583,9 +1582,9 @@ class MRotaryEmbedding(RotaryEmbedding):
         fused_set_kv_buffer_arg: Optional[FusedSetKVBufferArg] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # TODO: remove this when npu_mrope supports QNumHeads * QHeadSize > 4096
-        assert (
-            fused_set_kv_buffer_arg is None
-        ), "fused_set_kv_buffer_arg is not supported for npu implementation"
+        assert fused_set_kv_buffer_arg is None, (
+            "fused_set_kv_buffer_arg is not supported for npu implementation"
+        )
         if query.shape[1] > 4096:
             return self.forward_native(positions, query, key, fused_set_kv_buffer_arg)
         rotary_mode = "half"
@@ -3110,9 +3109,9 @@ def get_rope_cpu(
 
     assert rope_scaling is not None
     scaling_type = rope_scaling["rope_type"]
-    assert (
-        scaling_type == "deepseek_yarn"
-    ), "Only deepseek_yarn is supported for CPU for now"
+    assert scaling_type == "deepseek_yarn", (
+        "Only deepseek_yarn is supported for CPU for now"
+    )
 
     scaling_factor = rope_scaling["factor"]
     original_max_position = rope_scaling["original_max_position_embeddings"]

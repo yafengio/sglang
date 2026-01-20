@@ -21,6 +21,7 @@ If you only need to use the distributed environment without model/pipeline
  parallelism, you can skip the model parallel initialization and destruction
  steps.
 """
+
 import contextlib
 import gc
 import logging
@@ -79,7 +80,7 @@ class P2PWork:
 
 
 def _split_tensor_dict(
-    tensor_dict: Dict[str, Union[torch.Tensor, Any]]
+    tensor_dict: Dict[str, Union[torch.Tensor, Any]],
 ) -> Tuple[List[Tuple[str, Any]], List[torch.Tensor]]:
     """Split the tensor dictionary into two parts:
     1. A list of (key, value) pairs. If the value is a tensor, it is replaced
@@ -698,9 +699,9 @@ class GroupCoordinator:
         with pynccl_comm.change_state(
             enable=True, stream=get_current_device_stream_fast()
         ):
-            assert (
-                pynccl_comm is not None and not pynccl_comm.disabled
-            ), "pynccl is required for reduce_scatterv"
+            assert pynccl_comm is not None and not pynccl_comm.disabled, (
+                "pynccl is required for reduce_scatterv"
+            )
 
             if sizes is not None:
                 assert len(sizes) == world_size
@@ -750,9 +751,9 @@ class GroupCoordinator:
         eliminating the CPU-side launch-kernel blocking issue caused by synchronization problems.
         The specific implementation uses the interface provided by pynccl to remove the synchronization logic of events.
         """
-        assert (
-            stream is not None
-        ), f"Invalid params stream ({stream}, Please specify the stream to use when calling cp_all_gather_into_tensor_async.)"
+        assert stream is not None, (
+            f"Invalid params stream ({stream}, Please specify the stream to use when calling cp_all_gather_into_tensor_async.)"
+        )
         pynccl_comm = self.pynccl_comm
         if pynccl_comm is None or pynccl_comm.disabled:
             self.all_gather_into_tensor(output, input)
@@ -784,9 +785,9 @@ class GroupCoordinator:
                 output_tensor_list, input_, group=self.device_group
             )
 
-        assert (
-            -input_.dim() <= dim < input_.dim()
-        ), f"Invalid dim ({dim}) for input tensor with shape {input_.size()}"
+        assert -input_.dim() <= dim < input_.dim(), (
+            f"Invalid dim ({dim}) for input tensor with shape {input_.size()}"
+        )
 
         # For HPUs, use HPU communicator.
         hpu_comm = self.hpu_communicator
@@ -846,9 +847,9 @@ class GroupCoordinator:
         with pynccl_comm.change_state(
             enable=True, stream=get_current_device_stream_fast()
         ):
-            assert (
-                pynccl_comm is not None and not pynccl_comm.disabled
-            ), "pynccl is required for all_gatherv"
+            assert pynccl_comm is not None and not pynccl_comm.disabled, (
+                "pynccl is required for all_gatherv"
+            )
 
             def _all_gather_allocate_output(
                 input_: torch.Tensor, sizes: Optional[List[int]] = None
@@ -899,9 +900,9 @@ class GroupCoordinator:
         # Bypass the function if we are using only 1 GPU.
         if world_size == 1:
             return input_
-        assert (
-            -input_.dim() <= dim < input_.dim()
-        ), f"Invalid dim ({dim}) for input tensor with shape {input_.size()}"
+        assert -input_.dim() <= dim < input_.dim(), (
+            f"Invalid dim ({dim}) for input tensor with shape {input_.size()}"
+        )
         if dim < 0:
             # Convert negative dim to positive.
             dim += input_.dim()
@@ -1040,9 +1041,9 @@ class GroupCoordinator:
         """NOTE: `src` is the local rank of the source rank."""
 
         assert src < self.world_size, f"Invalid src rank ({src})"
-        assert (
-            src != self.rank_in_group
-        ), "Invalid source rank. Source rank is the same as the current rank."
+        assert src != self.rank_in_group, (
+            "Invalid source rank. Source rank is the same as the current rank."
+        )
 
         size_tensor = torch.empty(1, dtype=torch.long, device="cpu")
 
@@ -1089,9 +1090,9 @@ class GroupCoordinator:
         rank_in_group = self.rank_in_group
         if rank_in_group == src:
             metadata_list: List[Tuple[Any, Any]] = []
-            assert isinstance(
-                tensor_dict, dict
-            ), f"Expecting a dictionary, got {type(tensor_dict)}"
+            assert isinstance(tensor_dict, dict), (
+                f"Expecting a dictionary, got {type(tensor_dict)}"
+            )
             metadata_list, tensor_list = _split_tensor_dict(tensor_dict)
             # `metadata_list` lives in CPU memory.
             # `broadcast_object_list` has serialization & deserialization,
@@ -1176,9 +1177,9 @@ class GroupCoordinator:
             dst = (self.rank_in_group + 1) % self.world_size
         assert dst < self.world_size, f"Invalid dst rank ({dst})"
 
-        assert isinstance(
-            tensor_dict, dict
-        ), f"Expecting a dictionary, got {type(tensor_dict)}"
+        assert isinstance(tensor_dict, dict), (
+            f"Expecting a dictionary, got {type(tensor_dict)}"
+        )
         metadata_list, tensor_list = _split_tensor_dict(tensor_dict)
         # Note: While switching to Device-to-Device (D2D) would introduce an extra
         # Device-to-Host (D2H) memory copy overhead for serialization, our benchmarks
@@ -1392,9 +1393,9 @@ def set_pdmux_status(enable_prefill_multiplexing: bool):
 
 def get_tp_group() -> GroupCoordinator:
     if _ENABLE_PDMUX_P_TP:
-        assert (
-            _PDMUX_PREFILL_TP_GROUP is not None
-        ), "tensor model parallel group for PD-Multiplexing Prefill is not initialized"
+        assert _PDMUX_PREFILL_TP_GROUP is not None, (
+            "tensor model parallel group for PD-Multiplexing Prefill is not initialized"
+        )
         return _PDMUX_PREFILL_TP_GROUP
     assert _TP is not None, "tensor model parallel group is not initialized"
     return _TP
@@ -1444,9 +1445,10 @@ def graph_capture(stream: Optional[torch.cuda.Stream] = None):
     in order to explicitly distinguish the kernels to capture
     from other kernels possibly launched on background in the default stream.
     """
-    with get_tp_group().graph_capture(
-        stream=stream
-    ) as context, get_pp_group().graph_capture(context):
+    with (
+        get_tp_group().graph_capture(stream=stream) as context,
+        get_pp_group().graph_capture(context),
+    ):
         yield context
 
 
@@ -1481,7 +1483,7 @@ def init_distributed_environment(
     timeout: Optional[int] = None,
 ):
     logger.debug(
-        "world_size=%d rank=%d local_rank=%d " "distributed_init_method=%s backend=%s",
+        "world_size=%d rank=%d local_rank=%d distributed_init_method=%s backend=%s",
         world_size,
         rank,
         local_rank,
@@ -1533,9 +1535,9 @@ def init_distributed_environment(
         ranks = list(range(torch.distributed.get_world_size()))
         _WORLD = init_world_group(ranks, local_rank, backend)
     else:
-        assert (
-            _WORLD.world_size == torch.distributed.get_world_size()
-        ), "world group already initialized with a different world size"
+        assert _WORLD.world_size == torch.distributed.get_world_size(), (
+            "world group already initialized with a different world size"
+        )
 
 
 def initialize_model_parallel(
@@ -1604,9 +1606,9 @@ def initialize_model_parallel(
 
     if duplicate_tp_group:
         global _PDMUX_PREFILL_TP_GROUP
-        assert (
-            _PDMUX_PREFILL_TP_GROUP is None
-        ), "tensor model parallel group for PD-Multiplexing Prefill is already initialized"
+        assert _PDMUX_PREFILL_TP_GROUP is None, (
+            "tensor model parallel group for PD-Multiplexing Prefill is already initialized"
+        )
         _PDMUX_PREFILL_TP_GROUP = init_model_parallel_group(
             group_ranks,
             get_world_group().local_rank,
@@ -1917,9 +1919,9 @@ def in_the_same_node_as(pg: ProcessGroup, source_rank: int = 0) -> List[bool]:
     as the source rank. It tests if processes are attached to the same
     memory system (shared access to shared memory).
     """
-    assert (
-        torch.distributed.get_backend(pg) != torch.distributed.Backend.NCCL
-    ), "in_the_same_node_as should be tested with a non-NCCL group."
+    assert torch.distributed.get_backend(pg) != torch.distributed.Backend.NCCL, (
+        "in_the_same_node_as should be tested with a non-NCCL group."
+    )
     # local rank inside the group
     rank = torch.distributed.get_rank(group=pg)
     world_size = torch.distributed.get_world_size(group=pg)
