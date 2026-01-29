@@ -492,7 +492,7 @@ void musa_fused_add_rms_norm(
     int m = input.size(0);
     int n = input.size(1);
 
-    const at::cuda::OptionalCUDAGuard device_guard(device_of(input));
+    const at::musa::OptionalMUSAGuard device_guard(device_of(input));
 
     if (input.scalar_type() == at::ScalarType::BFloat16)
     {
