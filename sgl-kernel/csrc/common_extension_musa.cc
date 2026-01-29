@@ -75,6 +75,12 @@ TORCH_LIBRARY_EXPAND(sgl_kernel, m) {
       "                 Tensor cos_sin_cache, bool is_neox) -> ()");
   m.impl("rotary_embedding", torch::kMUSA, &rotary_embedding);
 
+  m.def(
+      "apply_rope_pos_ids_cos_sin_cache(Tensor q, Tensor k, Tensor! q_rope, Tensor! k_rope, Tensor cos_sin_cache, "
+      "Tensor pos_ids, bool interleave, bool enable_pdl, int cuda_stream, "
+      "Tensor? v, Tensor!? k_buffer, Tensor!? v_buffer, Tensor? kv_cache_loc) -> ()");
+  m.impl("apply_rope_pos_ids_cos_sin_cache", torch::kMUSA, &apply_rope_pos_ids_cos_sin_cache);
+
   m.def("concat_mla_k(Tensor! k, Tensor k_nope, Tensor k_rope) -> ()");
   m.impl("concat_mla_k", torch::kMUSA, &concat_mla_k);
 
